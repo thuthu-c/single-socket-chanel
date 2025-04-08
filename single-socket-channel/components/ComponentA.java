@@ -1,23 +1,54 @@
 package components;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.Socket;
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
-class ComponentA {
+//class ComponentA extends Component {
+//    public ComponentA(String protocol) {
+//        super("Componente A", protocol);
+//    }
+//
+//    @Override
+//    public void execute() {
+//        sendMessage(name + " diz olá!");
+//    }
+//
+//}
+
+
+public class ComponentA {
+    private static final String COMPONENT_NAME = "ComponenteA"; // troque para B ou C conforme necessário
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 6000;
+    private static final int HEARTBEAT_INTERVAL = 3000;
+
+    public ComponentA(String COMPONENT_NAME) {
+        super();
+    }
+
     public static void main(String[] args) {
-        String serverAddress = "localhost";
-        int port = 5000;
-        try (Socket socket = new Socket(serverAddress, port);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        try {
+            SocketChannel client = SocketChannel.open();
+            client.connect(new InetSocketAddress(SERVER_HOST, SERVER_PORT));
 
-            out.println("Mensagem do Componente A via TCP");
-            System.out.println("Resposta: " + in.readLine());
-        } catch (IOException e) {
+            sendMessage(client, "register:" + COMPONENT_NAME);
+
+            while (true) {
+                sendMessage(client, "heartbeat:" + COMPONENT_NAME);
+                Thread.sleep(HEARTBEAT_INTERVAL);
+            }
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    private static void sendMessage(SocketChannel client, String message) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+        client.write(buffer);
+        buffer.clear();
+        System.out.println("Enviado: " + message);
     }
 }

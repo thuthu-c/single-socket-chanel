@@ -1,31 +1,52 @@
 package components;
 
-import java.io.BufferedReader;
+//class ComponentC extends Component {
+//    public ComponentC(String protocol) {
+//        super("Componente C", protocol);
+//    }
+//
+//    @Override
+//    public void execute() {
+//        sendMessage(name + " registrou evento às " + System.currentTimeMillis());
+//    }
+//}
+
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 public class ComponentC {
+    private static final String COMPONENT_NAME = "ComponenteC"; // troque para B ou C conforme necessário
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 6000;
+    private static final int HEARTBEAT_INTERVAL = 3000;
+
+    public ComponentC(String COMPONENT_NAME) {
+        super();
+    }
+
     public static void main(String[] args) {
-        String serverAddress = "http://localhost:8080";
         try {
-            Socket socket = new Socket("localhost", 8080);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            SocketChannel client = SocketChannel.open();
+            client.connect(new InetSocketAddress(SERVER_HOST, SERVER_PORT));
 
-            out.println("GET / HTTP/1.1");
-            out.println("Host: localhost");
-            out.println("\r\n");
+            sendMessage(client, "register:" + COMPONENT_NAME);
 
-            String response;
-            while ((response = in.readLine()) != null) {
-                System.out.println(response);
+            while (true) {
+                sendMessage(client, "heartbeat:" + COMPONENT_NAME);
+                Thread.sleep(HEARTBEAT_INTERVAL);
             }
-
-            socket.close();
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    private static void sendMessage(SocketChannel client, String message) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+        client.write(buffer);
+        buffer.clear();
+        System.out.println("Enviado: " + message);
     }
 }

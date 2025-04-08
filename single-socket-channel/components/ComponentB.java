@@ -1,31 +1,55 @@
 package components;
 
-import java.io.BufferedReader;
+
+//class ComponentB extends Component {
+//    public ComponentB(String protocol) {
+//        super("Componente B", protocol);
+//    }
+//
+//    @Override
+//    public void execute() {
+//        sendMessage(name + " reporta status: OK");
+//    }
+//}
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
-class ComponentB {
+public class ComponentB {
+    private static final String COMPONENT_NAME = "ComponenteB"; // troque para B ou C conforme necessário
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 6000;
+    private static final int HEARTBEAT_INTERVAL = 3000;
+
+
+    public ComponentB(String COMPONENT_NAME) {
+        super();
+    }
+
     public static void main(String[] args) {
-        String serverAddress = "localhost";
-        int port = 5001;
-        try (DatagramSocket socket = new DatagramSocket()) {
-            byte[] sendData = "Mensagem do Componente B via UDP".getBytes();
-            InetAddress address = InetAddress.getByName(serverAddress);
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, address, port);
-            socket.send(sendPacket);
+        try {
+            SocketChannel client = SocketChannel.open();
+            client.connect(new InetSocketAddress(SERVER_HOST, SERVER_PORT));
 
-            byte[] receiveBuffer = new byte[1024];
-            DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
-            socket.receive(receivePacket);
-            String response = new String(receivePacket.getData(), 0, receivePacket.getLength());
-            System.out.println("Resposta: " + response);
-        } catch (IOException e) {
+            sendMessage(client, "register:" + COMPONENT_NAME);
+
+            while (true) {
+                sendMessage(client, "heartbeat:" + COMPONENT_NAME);
+                Thread.sleep(HEARTBEAT_INTERVAL);
+            }
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
+
+    private static void sendMessage(SocketChannel client, String message) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+        client.write(buffer);
+        buffer.clear();
+        System.out.println("Enviado: " + message);
+    }
 }
+
+
